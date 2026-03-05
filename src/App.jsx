@@ -138,7 +138,7 @@ export default function CreativeStrategyApp() {
     if (!brandUrl.trim()) return;
     setFetchStatus("fetching");
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const res = await fetch("/api/claude", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -207,7 +207,7 @@ Be analytical. Flag contradictions or gaps. Max 400 words. Start your response w
     setLoading(true);
 
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const res = await fetch("/api/claude", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
