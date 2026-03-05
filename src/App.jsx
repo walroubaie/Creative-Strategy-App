@@ -652,7 +652,7 @@ const s = {
   dot:         { width:7, height:7, borderRadius:"50%", background:"#d4a853", animation:"dotPulse 1.2s ease-in-out infinite", display:"inline-block" },
   inputArea:   { padding:"14px 20px 16px", borderTop:"1px solid #e0d8cc", background:"#fff" },
   inputWrap:   { display:"flex", gap:10, alignItems:"flex-end", background:"#F7F3EE", border:"1px solid #e0d8cc", borderRadius:14, padding:"10px 14px" },
-  textarea:    { flex:1, background:"transparent", border:"none", outline:"none", color:"#f0ebe0", fontSize:14, fontFamily:"'Palatino Linotype','Book Antiqua',Palatino,serif", lineHeight:1.6, resize:"none" },
+  textarea:    { flex:1, background:"transparent", border:"none", outline:"none", color:"#1C1C1E", fontSize:14, fontFamily:"'Palatino Linotype','Book Antiqua',Palatino,serif", lineHeight:1.6, resize:"none" },
   sendBtn:     { width:34, height:34, borderRadius:"50%", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, color:"#fff", flexShrink:0, transition:"all .2s" },
   inputHint:   { textAlign:"center", marginTop:6, color:"#bbb", fontSize:10, fontFamily:"monospace", letterSpacing:.5 },
   docPanel:    { width:"42%", borderLeft:"1px solid #e0d8cc", background:"#fff", display:"flex", flexDirection:"column", overflow:"hidden" },
