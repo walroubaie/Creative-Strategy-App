@@ -491,7 +491,7 @@ function Landing({ onStart }) {
 
 // ─── SETUP ────────────────────────────────────────────────────────────────────
 function Setup({ brandUrl, setBrandUrl, fetchStatus, brandContext, setBrandContext, brandName, onFetch, onStart, setBrandName, setFetchStatus }) {
-  const [manualText, setManualText] = React.useState("");
+  const [manualText, setManualText] = useState("");
 
   const useManual = () => {
     if (!manualText.trim()) return;
