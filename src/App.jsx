@@ -143,26 +143,34 @@ export default function CreativeStrategyApp() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
-          max_tokens: 2000,
+          max_tokens: 4000,
+          tools: [{ type: "web_search_20250305", name: "web_search" }],
           messages: [{
             role: "user",
-            content: `You are a brand intelligence analyst. Based on this brand URL: ${brandUrl.trim()}
+            content: `You are a brand intelligence analyst. You MUST use the web_search tool to look up real information about this brand before writing anything.
 
-Produce a brand intelligence brief covering what you know or can infer about this brand:
-- Brand name
-- What they sell and core products
+Search for: "${brandUrl.trim()}" and also search for the brand name + "reviews", "products", "about".
+
+After searching, produce a brand intelligence brief covering:
+- Brand name (real one from the site)
+- Founder story (if visible)
+- Core products with prices and review counts
 - Key claims and differentiators
-- Target audience signals
+- Target audience signals from copy
+- Visual/aesthetic identity
+- What they say vs what the evidence shows
+- Social channels mentioned
 - Price positioning
-- What makes them different
 
-If you don't have specific information about this brand, say so clearly and note what the URL suggests.
-Be analytical. Max 300 words. Start your response with the brand name in bold.`
+Be analytical. Flag contradictions or gaps. Max 400 words. Start your response with the brand name in bold.`
           }]
         })
       });
       const data = await res.json();
-      const text = data.content?.filter(b => b.type === "text").map(b => b.text).join("\n") || "";
+      const text = data.content
+        ?.filter(b => b.type === "text")
+        .map(b => b.text)
+        .join("\n") || "";
       if (!text) throw new Error("No text response");
       const firstLine = text.split("\n")[0];
       const nameMatch = firstLine.match(/\*\*([^*]+)\*\*/) || firstLine.match(/^#\s*(.+)/);
@@ -255,13 +263,15 @@ Be analytical. Max 300 words. Start your response with the brand name in bold.`
       onFetch={(mode, text, name) => {
         if (mode === "manual") {
           setBrandContext(text);
-          setBrandName(name);
+          setBrandName(name || "Brand");
           setFetchStatus("done");
         } else {
           fetchBrand();
         }
       }}
       onStart={startSession}
+      setBrandName={setBrandName}
+      setFetchStatus={setFetchStatus}
     />
   );
 
@@ -480,15 +490,12 @@ function Landing({ onStart }) {
 }
 
 // ─── SETUP ────────────────────────────────────────────────────────────────────
-function Setup({ brandUrl, setBrandUrl, fetchStatus, brandContext, setBrandContext, brandName, onFetch, onStart }) {
+function Setup({ brandUrl, setBrandUrl, fetchStatus, brandContext, setBrandContext, brandName, onFetch, onStart, setBrandName, setFetchStatus }) {
   const [manualText, setManualText] = React.useState("");
 
   const useManual = () => {
     if (!manualText.trim()) return;
-    setBrandContext(manualText);
-    const firstLine = manualText.split("\n")[0].replace(/[#*_]/g, "").trim();
-    // trigger parent to set brand name from first line
-    onFetch("manual", manualText, firstLine.split(/\s+/).slice(0,2).join(" ") || "Brand");
+    onFetch("manual", manualText, manualText.split("\n")[0].replace(/[#*_]/g, "").trim().split(/\s+/).slice(0,2).join(" ") || "Brand");
   };
 
   return (
@@ -596,8 +603,8 @@ function Setup({ brandUrl, setBrandUrl, fetchStatus, brandContext, setBrandConte
           )}
         </div>
 
-        {/* Continue button after URL read */}
-        {fetchStatus === "done" && !manualText.trim() && (
+        {/* Continue button after URL read or after manual ready */}
+        {fetchStatus === "done" && (
           <button
             onClick={onStart}
             style={{ width:"100%", background:"linear-gradient(135deg,#d4a853,#8b5e3c)", border:"none", borderRadius:12, padding:"18px", color:"#fff", fontSize:17, fontFamily:"inherit", cursor:"pointer", letterSpacing:1, boxShadow:"0 8px 40px rgba(212,168,83,.25)" }}
