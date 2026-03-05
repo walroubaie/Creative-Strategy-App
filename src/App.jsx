@@ -138,45 +138,32 @@ export default function CreativeStrategyApp() {
     if (!brandUrl.trim()) return;
     setFetchStatus("fetching");
     try {
-      // Step 1: Actually fetch the webpage content via web_search tool
       const res = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
-          max_tokens: 4000,
-          tools: [{ type: "web_search_20250305", name: "web_search" }],
+          max_tokens: 2000,
           messages: [{
             role: "user",
-            content: `You are a brand intelligence analyst. You MUST use the web_search tool to look up real information about this brand before writing anything.
+            content: `You are a brand intelligence analyst. Based on this brand URL: ${brandUrl.trim()}
 
-Search for: "${brandUrl.trim()}" and also search for the brand name + "reviews", "products", "about".
-
-After searching, produce a brand intelligence brief covering:
-- Brand name (real one from the site)
-- Founder story (if visible)
-- Core products with prices and review counts
-- Key claims and differentiators  
-- Target audience signals from copy
-- Visual/aesthetic identity
-- What they say vs what the evidence shows
-- Social channels mentioned
+Produce a brand intelligence brief covering what you know or can infer about this brand:
+- Brand name
+- What they sell and core products
+- Key claims and differentiators
+- Target audience signals
 - Price positioning
+- What makes them different
 
-Be analytical. Flag contradictions or gaps. Max 400 words. Start your response with the brand name in bold.`
+If you don't have specific information about this brand, say so clearly and note what the URL suggests.
+Be analytical. Max 300 words. Start your response with the brand name in bold.`
           }]
         })
       });
       const data = await res.json();
-
-      // Extract the final text response (after tool use)
-      const text = data.content
-        ?.filter(b => b.type === "text")
-        .map(b => b.text)
-        .join("\n") || "";
-
+      const text = data.content?.filter(b => b.type === "text").map(b => b.text).join("\n") || "";
       if (!text) throw new Error("No text response");
-
       const firstLine = text.split("\n")[0];
       const nameMatch = firstLine.match(/\*\*([^*]+)\*\*/) || firstLine.match(/^#\s*(.+)/);
       const extractedName = nameMatch ? nameMatch[1].trim() : brandUrl.replace(/https?:\/\/(www\.)?/, "").split("/")[0].split(".")[0];
@@ -186,6 +173,13 @@ Be analytical. Flag contradictions or gaps. Max 400 words. Start your response w
     } catch {
       setFetchStatus("error");
     }
+  };
+
+  const useManualContext = () => {
+    if (!brandContext.trim()) return;
+    const firstLine = brandContext.split("\n")[0].replace(/[#*_]/g, "").trim();
+    setBrandName(firstLine.split(" ")[0] || "Brand");
+    setFetchStatus("done");
   };
 
   const startSession = () => {
@@ -256,8 +250,17 @@ Be analytical. Flag contradictions or gaps. Max 400 words. Start your response w
       setBrandUrl={setBrandUrl}
       fetchStatus={fetchStatus}
       brandContext={brandContext}
+      setBrandContext={setBrandContext}
       brandName={brandName}
-      onFetch={fetchBrand}
+      onFetch={(mode, text, name) => {
+        if (mode === "manual") {
+          setBrandContext(text);
+          setBrandName(name);
+          setFetchStatus("done");
+        } else {
+          fetchBrand();
+        }
+      }}
       onStart={startSession}
     />
   );
@@ -328,7 +331,7 @@ Be analytical. Flag contradictions or gaps. Max 400 words. Start your response w
                   {m.role === "assistant" && (
                     <div style={s.bubbleLabel}>SENIOR STRATEGIST</div>
                   )}
-                  <div style={{ ...s.bubbleText, color: m.role === "assistant" ? "#d8d0c8" : "#9090b0" }}>
+                  <div style={{ ...s.bubbleText, color: m.role === "assistant" ? "#1C1C1E" : "#444" }}>
                     {m.content}
                   </div>
                 </div>
@@ -427,12 +430,12 @@ Be analytical. Flag contradictions or gaps. Max 400 words. Start your response w
           50% { opacity:1; }
         }
         * { box-sizing:border-box; margin:0; padding:0; }
-        body { background:#080810; }
+        body { background:#F7F3EE; }
         ::-webkit-scrollbar { width:3px; }
-        ::-webkit-scrollbar-track { background:#080810; }
-        ::-webkit-scrollbar-thumb { background:#222230; border-radius:2px; }
-        textarea::placeholder { color:#252535; }
-        textarea { caret-color:#d4a853; }
+        ::-webkit-scrollbar-track { background:#F7F3EE; }
+        ::-webkit-scrollbar-thumb { background:#d8cfc4; border-radius:2px; }
+        textarea::placeholder { color:#bbb; }
+        textarea { caret-color:#8b5e3c; }
       `}</style>
     </div>
   );
@@ -441,22 +444,22 @@ Be analytical. Flag contradictions or gaps. Max 400 words. Start your response w
 // ─── LANDING ──────────────────────────────────────────────────────────────────
 function Landing({ onStart }) {
   return (
-    <div style={{ minHeight:"100vh", background:"#080810", display:"flex", alignItems:"center", justifyContent:"center", padding:24, fontFamily:"'Palatino Linotype', 'Book Antiqua', Palatino, serif" }}>
+    <div style={{ minHeight:"100vh", background:"#F7F3EE", display:"flex", alignItems:"center", justifyContent:"center", padding:24, fontFamily:"'Palatino Linotype', 'Book Antiqua', Palatino, serif" }}>
       <div style={{ maxWidth:560, width:"100%", textAlign:"center" }}>
-        <div style={{ fontSize:11, letterSpacing:8, color:"#d4a853", fontFamily:"monospace", textTransform:"uppercase", marginBottom:40 }}>
+        <div style={{ fontSize:11, letterSpacing:8, color:"#5a4aaa", fontFamily:"monospace", textTransform:"uppercase", marginBottom:40 }}>
           Creative Strategy System
         </div>
-        <h1 style={{ fontSize:58, color:"#f0ebe0", fontWeight:"normal", lineHeight:1.1, marginBottom:20 }}>
+        <h1 style={{ fontSize:58, color:"#1C1C1E", fontWeight:"normal", lineHeight:1.1, marginBottom:20 }}>
           The Strategy<br />Session
         </h1>
-        <p style={{ color:"#555", fontSize:17, lineHeight:1.8, marginBottom:48, maxWidth:420, margin:"0 auto 48px" }}>
+        <p style={{ color:"#666", fontSize:17, lineHeight:1.8, marginBottom:48, maxWidth:420, margin:"0 auto 48px" }}>
           Paste any brand URL. Work through all 7 stages with a senior creative strategist who pushes back. Walk out with a complete strategy document.
         </p>
         <div style={{ display:"flex", flexDirection:"column", gap:12, marginBottom:48, maxWidth:360, margin:"0 auto 48px" }}>
           {["Brand Audit + Market Research", "Customer Research + Language Bank", "Strategic Foundation + Organising Idea", "Creative Planning + GBP Method", "Brief Writing + Hook Factory", "Analysis Framework + Iteration System"].map((item, i) => (
-            <div key={i} style={{ display:"flex", alignItems:"center", gap:12, textAlign:"left" }}>
-              <span style={{ color:"#d4a853", fontFamily:"monospace", fontSize:11, width:20, flexShrink:0 }}>0{i+1}</span>
-              <span style={{ color:"#444", fontSize:13 }}>{item}</span>
+            <div key={i} style={{ display:"flex", alignItems:"center", gap:12, textAlign:"left", background:"#fff", padding:"10px 14px", borderRadius:10, border:"1px solid #e8e0d4" }}>
+              <span style={{ color:"#8b5e3c", fontFamily:"monospace", fontSize:11, width:20, flexShrink:0 }}>0{i+1}</span>
+              <span style={{ color:"#555", fontSize:13 }}>{item}</span>
             </div>
           ))}
         </div>
@@ -468,7 +471,7 @@ function Landing({ onStart }) {
         >
           Start a New Brand →
         </button>
-        <div style={{ color:"#252525", fontSize:11, marginTop:20, fontFamily:"monospace", letterSpacing:1 }}>
+        <div style={{ color:"#bbb", fontSize:11, marginTop:20, fontFamily:"monospace", letterSpacing:1 }}>
           Works for any brand · Any industry · Any stage
         </div>
       </div>
@@ -477,45 +480,57 @@ function Landing({ onStart }) {
 }
 
 // ─── SETUP ────────────────────────────────────────────────────────────────────
-function Setup({ brandUrl, setBrandUrl, fetchStatus, brandContext, brandName, onFetch, onStart }) {
+function Setup({ brandUrl, setBrandUrl, fetchStatus, brandContext, setBrandContext, brandName, onFetch, onStart }) {
+  const [manualText, setManualText] = React.useState("");
+
+  const useManual = () => {
+    if (!manualText.trim()) return;
+    setBrandContext(manualText);
+    const firstLine = manualText.split("\n")[0].replace(/[#*_]/g, "").trim();
+    // trigger parent to set brand name from first line
+    onFetch("manual", manualText, firstLine.split(/\s+/).slice(0,2).join(" ") || "Brand");
+  };
+
   return (
-    <div style={{ minHeight:"100vh", background:"#080810", display:"flex", alignItems:"center", justifyContent:"center", padding:24, fontFamily:"'Palatino Linotype', 'Book Antiqua', Palatino, serif" }}>
-      <div style={{ maxWidth:580, width:"100%" }}>
-        <div style={{ fontSize:11, letterSpacing:6, color:"#d4a853", fontFamily:"monospace", marginBottom:32 }}>
+    <div style={{ minHeight:"100vh", background:"#F7F3EE", display:"flex", alignItems:"center", justifyContent:"center", padding:24, fontFamily:"'Palatino Linotype','Book Antiqua',Palatino,serif" }}>
+      <div style={{ maxWidth:600, width:"100%" }}>
+        <div style={{ fontSize:11, letterSpacing:6, color:"#5a4aaa", fontFamily:"monospace", marginBottom:32 }}>
           STEP 1 OF 1 — BRAND SETUP
         </div>
-        <h2 style={{ fontSize:36, color:"#f0ebe0", fontWeight:"normal", marginBottom:12 }}>
+        <h2 style={{ fontSize:38, color:"#1C1C1E", fontWeight:"normal", marginBottom:12 }}>
           What brand are we working on?
         </h2>
-        <p style={{ color:"#555", fontSize:15, lineHeight:1.7, marginBottom:36 }}>
-          Paste the brand's website URL. I'll read it and build a brand intelligence brief before we start the session.
+        <p style={{ color:"#666", fontSize:15, lineHeight:1.7, marginBottom:36 }}>
+          Paste the brand's website URL and I'll build a brief — or skip straight to pasting what you know below.
         </p>
 
-        <div style={{ display:"flex", gap:10, marginBottom:20 }}>
+        {/* URL input */}
+        <div style={{ display:"flex", gap:10, marginBottom:16 }}>
           <input
             value={brandUrl}
             onChange={e => setBrandUrl(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && onFetch()}
+            onKeyDown={e => e.key === "Enter" && onFetch("url")}
             placeholder="https://brandname.com"
-            style={{ flex:1, background:"#0f0f1a", border:"1px solid #1e1e30", borderRadius:10, padding:"14px 18px", color:"#d8d0c8", fontSize:15, fontFamily:"monospace", outline:"none" }}
-            onFocus={e => e.target.style.borderColor = "#d4a853"}
-            onBlur={e => e.target.style.borderColor = "#1e1e30"}
+            style={{ flex:1, background:"#fff", border:"1px solid #e0d8cc", borderRadius:10, padding:"14px 18px", color:"#1C1C1E", fontSize:15, fontFamily:"monospace" }}
+            onFocus={e => e.target.style.borderColor = "#7c6aff"}
+            onBlur={e => e.target.style.borderColor = "#e0d8cc"}
           />
           <button
-            onClick={onFetch}
+            onClick={() => onFetch("url")}
             disabled={!brandUrl.trim() || fetchStatus === "fetching"}
-            style={{ background: brandUrl.trim() ? "linear-gradient(135deg,#d4a853,#8b5e3c)" : "#111", border:"none", borderRadius:10, padding:"14px 24px", color:brandUrl.trim() ? "#fff" : "#333", fontSize:14, fontFamily:"monospace", cursor:brandUrl.trim() ? "pointer" : "default", letterSpacing:1, whiteSpace:"nowrap" }}
+            style={{ background: brandUrl.trim() ? "linear-gradient(135deg,#d4a853,#8b5e3c)" : "#e8e0d4", border:"none", borderRadius:10, padding:"14px 24px", color: brandUrl.trim() ? "#fff" : "#aaa", fontSize:14, fontFamily:"monospace", cursor: brandUrl.trim() ? "pointer" : "default", letterSpacing:1, whiteSpace:"nowrap" }}
           >
             {fetchStatus === "fetching" ? "READING..." : "READ BRAND"}
           </button>
         </div>
 
+        {/* Loading */}
         {fetchStatus === "fetching" && (
-          <div style={{ background:"#0f0f1a", border:"1px solid #1e1e30", borderRadius:10, padding:"20px 24px", marginBottom:20 }}>
-            <div style={{ color:"#d4a853", fontSize:12, fontFamily:"monospace", letterSpacing:2, marginBottom:12 }}>READING BRAND INTELLIGENCE...</div>
+          <div style={{ background:"#fff", border:"1px solid #e0d8cc", borderRadius:10, padding:"20px 24px", marginBottom:20 }}>
+            <div style={{ color:"#d4a853", fontSize:12, fontFamily:"monospace", letterSpacing:2, marginBottom:12 }}>READING BRAND...</div>
             <div style={{ display:"flex", gap:6 }}>
               {[0,1,2,3,4].map(i => (
-                <div key={i} style={{ height:3, flex:1, background:"#1e1e30", borderRadius:2, overflow:"hidden" }}>
+                <div key={i} style={{ height:3, flex:1, background:"#e8e0d4", borderRadius:2, overflow:"hidden" }}>
                   <div style={{ height:"100%", background:"#d4a853", borderRadius:2, animation:`loadBar 1.5s ${i*0.1}s ease-in-out infinite` }} />
                 </div>
               ))}
@@ -524,42 +539,65 @@ function Setup({ brandUrl, setBrandUrl, fetchStatus, brandContext, brandName, on
           </div>
         )}
 
-        {fetchStatus === "done" && brandContext && (
-          <div style={{ background:"#0c0c16", border:"1px solid #d4a85333", borderRadius:12, padding:"20px 24px", marginBottom:24 }}>
+        {/* URL success */}
+        {fetchStatus === "done" && brandContext && !manualText && (
+          <div style={{ background:"#fff", border:"1px solid #d4a85344", borderRadius:12, padding:"20px 24px", marginBottom:24 }}>
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14 }}>
-              <div style={{ color:"#d4a853", fontSize:11, fontFamily:"monospace", letterSpacing:3 }}>
+              <div style={{ color:"#8b5e3c", fontSize:11, fontFamily:"monospace", letterSpacing:3 }}>
                 BRAND INTELLIGENCE — {brandName.toUpperCase()}
               </div>
-              <div style={{ background:"#1a2a1a", border:"1px solid #2a4a2a", borderRadius:20, padding:"3px 10px", color:"#4a8a4a", fontSize:10, fontFamily:"monospace" }}>
+              <div style={{ background:"#f0fff0", border:"1px solid #aaddaa", borderRadius:20, padding:"3px 10px", color:"#4a8a4a", fontSize:10, fontFamily:"monospace" }}>
                 ● READY
               </div>
             </div>
-            <div style={{ color:"#666", fontSize:13, lineHeight:1.8, maxHeight:180, overflowY:"auto" }}>
+            <div style={{ color:"#555", fontSize:13, lineHeight:1.8, maxHeight:180, overflowY:"auto" }}>
               {brandContext.slice(0, 600)}...
             </div>
           </div>
         )}
 
+        {/* Error */}
         {fetchStatus === "error" && (
-          <div style={{ background:"#1a0c0c", border:"1px solid #4a2a2a", borderRadius:10, padding:"16px 20px", marginBottom:20, color:"#c06060", fontSize:13 }}>
-            Couldn't read that URL. Try the homepage directly, or paste what you know about the brand manually below.
+          <div style={{ background:"#fff5f5", border:"1px solid #f0cccc", borderRadius:10, padding:"14px 20px", marginBottom:16, color:"#c06060", fontSize:13 }}>
+            Couldn't read that URL automatically. No problem — paste what you know about the brand below instead.
           </div>
         )}
 
-        {(fetchStatus === "error" || fetchStatus === "idle") && (
-          <div style={{ marginBottom:20 }}>
-            <div style={{ color:"#333", fontSize:12, fontFamily:"monospace", marginBottom:8, letterSpacing:1 }}>
-              OR PASTE BRAND NOTES MANUALLY
-            </div>
-            <textarea
-              placeholder="Paste what you know about the brand — products, founder story, claims, positioning..."
-              rows={4}
-              style={{ width:"100%", background:"#0f0f1a", border:"1px solid #1e1e30", borderRadius:10, padding:"14px 18px", color:"#888", fontSize:13, fontFamily:"monospace", outline:"none", resize:"vertical", lineHeight:1.6 }}
-            />
-          </div>
-        )}
+        {/* Divider */}
+        <div style={{ display:"flex", alignItems:"center", gap:12, margin:"20px 0" }}>
+          <div style={{ flex:1, height:1, background:"#e0d8cc" }} />
+          <div style={{ color:"#bbb", fontSize:11, fontFamily:"monospace" }}>OR</div>
+          <div style={{ flex:1, height:1, background:"#e0d8cc" }} />
+        </div>
 
-        {fetchStatus === "done" && (
+        {/* Manual input — always visible */}
+        <div style={{ marginBottom:20 }}>
+          <div style={{ color:"#8b7355", fontSize:11, fontFamily:"monospace", marginBottom:10, letterSpacing:1 }}>
+            PASTE BRAND NOTES MANUALLY
+          </div>
+          <textarea
+            value={manualText}
+            onChange={e => setManualText(e.target.value)}
+            placeholder="Paste what you know about the brand — products, founder story, claims, positioning, target customer, competitors, anything..."
+            rows={5}
+            style={{ width:"100%", background:"#fff", border:"1px solid #e0d8cc", borderRadius:10, padding:"14px 18px", color:"#333", fontSize:13, fontFamily:"monospace", resize:"vertical", lineHeight:1.6 }}
+            onFocus={e => e.target.style.borderColor = "#7c6aff"}
+            onBlur={e => e.target.style.borderColor = "#e0d8cc"}
+          />
+          {manualText.trim() && (
+            <button
+              onClick={useManual}
+              style={{ marginTop:10, width:"100%", background:"linear-gradient(135deg,#7c6aff,#4a3aaa)", border:"none", borderRadius:10, padding:"14px", color:"#fff", fontSize:15, fontFamily:"inherit", cursor:"pointer", letterSpacing:1 }}
+              onMouseEnter={e => e.currentTarget.style.opacity = "0.9"}
+              onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+            >
+              Use These Notes →
+            </button>
+          )}
+        </div>
+
+        {/* Continue button after URL read */}
+        {fetchStatus === "done" && !manualText.trim() && (
           <button
             onClick={onStart}
             style={{ width:"100%", background:"linear-gradient(135deg,#d4a853,#8b5e3c)", border:"none", borderRadius:12, padding:"18px", color:"#fff", fontSize:17, fontFamily:"inherit", cursor:"pointer", letterSpacing:1, boxShadow:"0 8px 40px rgba(212,168,83,.25)" }}
@@ -574,54 +612,55 @@ function Setup({ brandUrl, setBrandUrl, fetchStatus, brandContext, brandName, on
   );
 }
 
+
 // ─── STYLES ───────────────────────────────────────────────────────────────────
 const s = {
-  app:         { minHeight:"100vh", background:"#080810", display:"flex", flexDirection:"column", fontFamily:"'Palatino Linotype','Book Antiqua',Palatino,serif" },
-  topbar:      { background:"#0b0b14", borderBottom:"1px solid #141420", padding:"12px 20px", display:"flex", alignItems:"center", justifyContent:"space-between", position:"sticky", top:0, zIndex:100, flexWrap:"wrap", gap:10 },
+  app:         { minHeight:"100vh", background:"#F7F3EE", display:"flex", flexDirection:"column", fontFamily:"'Palatino Linotype','Book Antiqua',Palatino,serif" },
+  topbar:      { background:"#1C1C1E", borderBottom:"1px solid #2a2a2a", padding:"12px 20px", display:"flex", alignItems:"center", justifyContent:"space-between", position:"sticky", top:0, zIndex:100, flexWrap:"wrap", gap:10 },
   topbarLeft:  { display:"flex", alignItems:"center", gap:12 },
   logoMark:    { width:34, height:34, background:"linear-gradient(135deg,#d4a853,#8b5e3c)", borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, color:"#fff", fontFamily:"monospace", fontWeight:"bold", flexShrink:0 },
-  topbarTitle: { color:"#c8c0b0", fontSize:14 },
-  topbarSub:   { color:"#333", fontSize:10, fontFamily:"monospace", letterSpacing:1, marginTop:2 },
+  topbarTitle: { color:"#f0ebe0", fontSize:14 },
+  topbarSub:   { color:"#666", fontSize:10, fontFamily:"monospace", letterSpacing:1, marginTop:2 },
   topbarRight: { display:"flex", alignItems:"center", gap:5, flexWrap:"wrap" },
   stagePill:   { width:26, height:26, borderRadius:"50%", border:"1.5px solid", background:"transparent", fontSize:10, fontFamily:"monospace", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", transition:"all .2s" },
   divider:     { width:1, height:20, background:"#1a1a22", margin:"0 6px" },
   docBtn:      { background:"transparent", border:"1px solid #1e1e2a", borderRadius:6, padding:"5px 12px", color:"#333", fontSize:10, fontFamily:"monospace", letterSpacing:1, cursor:"pointer", transition:"all .2s" },
   docBtnActive:{ borderColor:"#d4a853", color:"#d4a853", background:"rgba(212,168,83,.08)" },
-  stageBanner: { background:"#0a0a12", borderBottom:"1px solid #121220", borderLeft:"3px solid", padding:"8px 20px", display:"flex", alignItems:"center", gap:10 },
+  stageBanner: { background:"#fff", borderBottom:"1px solid #e8e0d4", borderLeft:"3px solid", padding:"8px 20px", display:"flex", alignItems:"center", gap:10 },
   stageNum:    { fontSize:11, fontFamily:"monospace", letterSpacing:3, fontWeight:"bold" },
   stageSep:    { color:"#222", fontSize:11 },
-  stageTag:    { color:"#333", fontSize:10, fontFamily:"monospace", letterSpacing:2 },
+  stageTag:    { color:"#999", fontSize:10, fontFamily:"monospace", letterSpacing:2 },
   skipBtn:     { marginLeft:"auto", background:"transparent", border:"none", color:"#333", fontSize:10, fontFamily:"monospace", letterSpacing:1, cursor:"pointer", padding:"4px 0", transition:"color .2s" },
   body:        { display:"flex", flex:1, overflow:"hidden" },
   chat:        { flex:1, display:"flex", flexDirection:"column", transition:"max-width .3s", overflow:"hidden" },
-  messages:    { flex:1, overflowY:"auto", padding:"28px 24px", display:"flex", flexDirection:"column", gap:22 },
+  messages:    { flex:1, overflowY:"auto", padding:"28px 24px", display:"flex", flexDirection:"column", gap:22, background:"#F7F3EE" },
   msgRow:      { display:"flex", gap:12, alignItems:"flex-start" },
   avatar:      { width:34, height:34, borderRadius:10, flexShrink:0, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, color:"#f0ebe0", fontFamily:"monospace", fontWeight:"bold" },
   bubble:      { maxWidth:"76%", borderRadius:12, padding:"14px 18px" },
-  bubbleBot:   { background:"#0e0e18", border:"1px solid #161624", borderRadius:"3px 12px 12px 12px" },
-  bubbleUser:  { background:"#12121e", border:"1px solid #1e1e34", borderRadius:"12px 3px 12px 12px" },
+  bubbleBot:   { background:"#fff", border:"1px solid #e8e0d4", borderRadius:"3px 12px 12px 12px" },
+  bubbleUser:  { background:"#ede8e0", border:"1px solid #d8d0c4", borderRadius:"12px 3px 12px 12px" },
   bubbleLabel: { fontSize:9, color:"#d4a853", fontFamily:"monospace", letterSpacing:3, marginBottom:8, textTransform:"uppercase" },
   bubbleText:  { fontSize:14, lineHeight:1.8, whiteSpace:"pre-wrap" },
   dots:        { display:"flex", gap:5, alignItems:"center", padding:"4px 0" },
   dot:         { width:7, height:7, borderRadius:"50%", background:"#d4a853", animation:"dotPulse 1.2s ease-in-out infinite", display:"inline-block" },
-  inputArea:   { padding:"14px 20px 16px", borderTop:"1px solid #111118", background:"#0b0b12" },
-  inputWrap:   { display:"flex", gap:10, alignItems:"flex-end", background:"#0e0e18", border:"1px solid #1a1a28", borderRadius:14, padding:"10px 14px" },
-  textarea:    { flex:1, background:"transparent", border:"none", outline:"none", color:"#c8c0b0", fontSize:14, fontFamily:"'Palatino Linotype','Book Antiqua',Palatino,serif", lineHeight:1.6, resize:"none" },
+  inputArea:   { padding:"14px 20px 16px", borderTop:"1px solid #e0d8cc", background:"#fff" },
+  inputWrap:   { display:"flex", gap:10, alignItems:"flex-end", background:"#F7F3EE", border:"1px solid #e0d8cc", borderRadius:14, padding:"10px 14px" },
+  textarea:    { flex:1, background:"transparent", border:"none", outline:"none", color:"#f0ebe0", fontSize:14, fontFamily:"'Palatino Linotype','Book Antiqua',Palatino,serif", lineHeight:1.6, resize:"none" },
   sendBtn:     { width:34, height:34, borderRadius:"50%", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, color:"#fff", flexShrink:0, transition:"all .2s" },
-  inputHint:   { textAlign:"center", marginTop:6, color:"#1e1e28", fontSize:10, fontFamily:"monospace", letterSpacing:.5 },
-  docPanel:    { width:"42%", borderLeft:"1px solid #111118", background:"#090912", display:"flex", flexDirection:"column", overflow:"hidden" },
-  docHeader:   { padding:"14px 18px", borderBottom:"1px solid #111118", display:"flex", alignItems:"center", justifyContent:"space-between" },
-  docLive:     { fontSize:9, color:"#4a8a4a", fontFamily:"monospace", letterSpacing:3, marginBottom:4 },
-  docTitle:    { color:"#666", fontSize:13 },
+  inputHint:   { textAlign:"center", marginTop:6, color:"#bbb", fontSize:10, fontFamily:"monospace", letterSpacing:.5 },
+  docPanel:    { width:"42%", borderLeft:"1px solid #e0d8cc", background:"#fff", display:"flex", flexDirection:"column", overflow:"hidden" },
+  docHeader:   { padding:"14px 18px", borderBottom:"1px solid #e0d8cc", display:"flex", alignItems:"center", justifyContent:"space-between" },
+  docLive:     { fontSize:9, color:"#5a9a5a", fontFamily:"monospace", letterSpacing:3, marginBottom:4 },
+  docTitle:    { color:"#555", fontSize:13 },
   docScroll:   { flex:1, overflowY:"auto", padding:"16px" },
   docStage:    { marginBottom:18 },
   docStageHeader: { display:"flex", alignItems:"center", gap:8, marginBottom:8 },
   docStageNum: { fontSize:10, fontFamily:"monospace", fontWeight:"bold", letterSpacing:1, transition:"color .5s" },
   docStageName:{ fontSize:11, fontFamily:"monospace", letterSpacing:1, transition:"color .5s" },
-  docStageBox: { background:"#0d0d16", border:"1px solid #111118", borderRadius:8, padding:"10px 12px", minHeight:44, transition:"border-color .3s" },
+  docStageBox: { background:"#F7F3EE", border:"1px solid #e8e0d4", borderRadius:8, padding:"10px 12px", minHeight:44, transition:"border-color .3s" },
   docNote:     { fontSize:11, lineHeight:1.6 },
   liveDot:     { width:6, height:6, borderRadius:"50%", background:"#d4a853", display:"inline-block", animation:"liveBlink 1.5s ease-in-out infinite", flexShrink:0 },
-  docFuture:   { background:"#0a0a10", border:"1px solid #111118", borderRadius:10, padding:"14px", marginTop:8 },
-  docFutureLabel: { color:"#222", fontSize:9, fontFamily:"monospace", letterSpacing:3, marginBottom:10 },
-  docFutureItem:  { color:"#252530", fontSize:12, padding:"7px 10px", background:"#0d0d14", borderRadius:6, border:"1px solid #111118", marginBottom:6 },
+  docFuture:   { background:"#f0ebe0", border:"1px solid #e0d8cc", borderRadius:10, padding:"14px", marginTop:8 },
+  docFutureLabel: { color:"#aaa", fontSize:9, fontFamily:"monospace", letterSpacing:3, marginBottom:10 },
+  docFutureItem:  { color:"#888", fontSize:12, padding:"7px 10px", background:"#fff", borderRadius:6, border:"1px solid #111118", marginBottom:6 },
 };
